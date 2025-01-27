@@ -34,12 +34,7 @@ export default class {
         .list()
         .then(snapshot => {
           const bills = snapshot
-            .map(doc => ({
-              ...doc,
-              date: doc.date,
-              status: formatStatus(doc.status)
-            }))
-            .sort((a, b) => new Date(b.date) - new Date(a.date)) // Tri décroissant par date
+          .sort((a, b) => new Date(b.date) - new Date(a.date)) // Tri décroissant
             .map(doc => {
               try {
                 return {
