@@ -3,6 +3,7 @@
  */
 
 import { screen, fireEvent } from "@testing-library/dom"
+import '@testing-library/jest-dom/extend-expect'
 import NewBillUI from "../views/NewBillUI.js"
 import NewBill from "../containers/NewBill.js"
 import { ROUTES_PATH } from "../constants/routes.js"
@@ -52,6 +53,37 @@ describe("Given I am connected as an employee", () => {
       fireEvent.submit(form)
       expect(handleSubmit).toHaveBeenCalled()
       expect(onNavigate).toHaveBeenCalledWith(ROUTES_PATH['Bills'])
+    })
+  })
+  describe('When I upload a valid file', () => {
+    test('Then it should set the billId, fileUrl, and fileName correctly', async () => {
+      const newBill = new NewBill({ document, onNavigate: jest.fn(), store: mockStore, localStorage: window.localStorage })
+      const fileInput = screen.getByTestId('file')
+      const file = new File(['dummy content'], 'http://localhost:3000/example.png', { type: 'image/png' })
+  
+      // Vérifier que fileInput n'est pas null
+      expect(fileInput).not.toBeNull()
+  
+      // Mock the store's bills().create() method to resolve with the expected values
+      newBill.store.bills().create = jest.fn().mockResolvedValue({
+        fileUrl: 'http://localhost:3000/example.png',
+        key: '12345'
+      })
+  
+      // Simulate the change event
+      Object.defineProperty(fileInput, 'files', {
+        value: [file],
+        configurable: true
+      })
+      fireEvent.change(fileInput)
+
+  
+      // Utiliser un setTimeout pour attendre la résolution de la promesse
+      setTimeout(() => {
+        expect(newBill.fileUrl).toBe('http://localhost:3000/example.png')
+        expect(newBill.fileName).toBe('example.png')
+        expect(newBill.billId).toBe('12345')
+      }, 0)
     })
   })
 })
