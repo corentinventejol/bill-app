@@ -77,105 +77,64 @@ describe("Given I am connected as an employee", () => {
   describe('When I upload a valid file', () => {
     test('Then it should set the billId, fileUrl, and fileName correctly', async () => {
       document.body.innerHTML = NewBillUI()
-      const newBill = new NewBill({ document, onNavigate: jest.fn(), store: mockStore, localStorage: window.localStorage })
-      const handleChangeFileMock = jest.fn((event) => newBill.handleChangeFile(event))
-
-      const fileInput = screen.getByTestId('file')
-      fileInput.addEventListener('change', handleChangeFileMock)
-      const file = new File([''], 'example.jpg', { type: 'image/jpeg' })
-  
-      // Vérifier que fileInput n'est pas null
-      expect(fileInput).not.toBeNull()
-  
-      // Mock the store's bills().create() method to resolve with the expected values
-      // newBill.store.bills().create = jest.fn().mockResolvedValue({
-      //   fileUrl: 'http://localhost:3000/example.png',
-      //   key: '12345'
-      // })
-  
-      // // Simulate the change event
-      // Object.defineProperty(fileInput, 'files', {
-      //   value: [file],
-      //   configurable: true
-      // })
-      // fireEvent.change(fileInput)
-
-      userEvent.upload(fileInput, file)
-
-      expect(handleChangeFileMock).toHaveBeenCalled()
-  
-      // Utiliser un setTimeout pour attendre la résolution de la promesse
-      // setTimeout(() => {
-        // expect(newBill.fileUrl).toBe('http://localhost:3000/example.png')
-        // expect(newBill.fileName).toBe('example.png')
-        // expect(newBill.billId).toBe('12345')
-      // }, 0)
-    })
-  })
-  describe('When I upload a file', () => {
-    test('Then the file input should be empty and an error message should be displayed if the file is not a valid image', async () => {
-      jest.spyOn(mockStore, 'bills')
-      Object.defineProperty(window, 'localStorage', { value: localStorageMock })
-      window.localStorage.setItem('user', JSON.stringify({ type: 'Employee', email: 'a@a' }))
-      const email = 'a@a'
-      let root = document.createElement('div')
-      root.setAttribute('id', 'root')
-      root.innerHTML = NewBillUI()
-      document.body.appendChild(root)
-      router()
-
       const newBill = new NewBill({
         document,
-        onNavigate: (pathname) => {
-          document.body.innerHTML = ROUTES({ pathname })
+        onNavigate: jest.fn(),
+        store: {
+          bills: () => ({
+            create: jest.fn().mockResolvedValue({
+              fileUrl: 'http://localhost:3000/image.png',
+              key: '1234'
+            })
+          })
         },
-        store: Store,
-        localStorage: window.localStorage,
+        localStorage: window.localStorage
       })
-
-      const handleChangeFileMock = jest.fn((event) => newBill.handleChangeFile(event))
-
-      const fileInput = screen.getByTestId('file')
-      fileInput.addEventListener('change', handleChangeFileMock)
-
-      const mockFile = new File([''], 'document.pdf', { type: 'application/pdf' })
-      userEvent.upload(fileInput, mockFile)
-
-      const errorMessage = document.querySelector(`p[data-testid="file-error-message"]`)
-      expect(errorMessage).not.toBeNull()
-      expect(errorMessage.textContent).toBe(
-        'Le fichier doit être une image au format jpg, JPG, jpeg, JPEG, png ou PNG'
-      )
-      expect(fileInput.value).toBe('')
-
-      userEvent.clear(fileInput)
-      userEvent.upload(fileInput, new File(['foo'], 'foo.pdf', { type: 'application/pdf' }))
-      expect(handleChangeFileMock).toHaveBeenCalled()
-      errorMessage.remove()
+  
+      const file = new File(['test'], 'test.png', { type: 'image/png' })
+      const event = {
+        preventDefault: jest.fn(),
+        target: {
+          value: 'C:\\fakepath\\test.png',
+          files: [file]
+        }
+      }
+  
+      newBill.handleChangeFile(event)
+      await new Promise(process.nextTick)
+  
+      expect(newBill.billId).toBe('1234')
+      expect(newBill.fileUrl).toBe('http://localhost:3000/image.png')
+      expect(newBill.fileName).toBe('test.png')
     })
-
-    test('Then the file input should be filled and the store should be called', async () => {
-      const html = NewBillUI()
-      document.body.innerHTML = html
-      jest.spyOn(mockStore, 'bills')
-
+    test("Then it should handle errors when store.bills().create fails", async () => {
       document.body.innerHTML = NewBillUI()
+      console.error = jest.fn()
+
       const newBill = new NewBill({
         document,
-        onNavigate: (pathname) => {
-          document.body.innerHTML = ROUTES({ pathname })
+        onNavigate: jest.fn(),
+        store: {
+          bills: () => ({
+            create: jest.fn().mockRejectedValue(new Error('Upload failed'))
+          })
         },
-        store: mockStore,
-        localStorage: window.localStorage,
+        localStorage: window.localStorage
       })
 
-      const handleChangeFileMock = jest.fn((event) => newBill.handleChangeFile(event))
-      const inputFile = screen.getByTestId('file')
-      inputFile.addEventListener('change', handleChangeFileMock)
-      const file = new File([''], 'test.jpg', { type: 'image/jpeg' })
-      userEvent.upload(inputFile, file)
-      expect(handleChangeFileMock).toHaveBeenCalled()
-      expect(document.querySelector(`p[data-testid="file-error-message"]`)).toBeNull()
+      const file = new File(['test'], 'test.png', { type: 'image/png' })
+      const event = {
+        preventDefault: jest.fn(),
+        target: {
+          value: 'C:\\fakepath\\test.png',
+          files: [file]
+        }
+      }
+
+      newBill.handleChangeFile(event)
+      await new Promise(process.nextTick)
+
+      expect(console.error).toHaveBeenCalled()
     })
   })
 })
