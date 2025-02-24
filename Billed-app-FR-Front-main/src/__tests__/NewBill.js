@@ -107,7 +107,7 @@ describe("Given I am connected as an employee", () => {
       expect(newBill.fileUrl).toBe('http://localhost:3000/image.png')
       expect(newBill.fileName).toBe('test.png')
     })
-    test("Then it should handle errors when store.bills().create fails", async () => {
+    test("Then it should handle 404 error when store.bills().create fails", async () => {
       document.body.innerHTML = NewBillUI()
       console.error = jest.fn()
 
@@ -116,7 +116,7 @@ describe("Given I am connected as an employee", () => {
         onNavigate: jest.fn(),
         store: {
           bills: () => ({
-            create: jest.fn().mockRejectedValue(new Error('Upload failed'))
+            create: jest.fn().mockRejectedValue(new Error('Error 404'))
           })
         },
         localStorage: window.localStorage
@@ -134,7 +134,37 @@ describe("Given I am connected as an employee", () => {
       newBill.handleChangeFile(event)
       await new Promise(process.nextTick)
 
-      expect(console.error).toHaveBeenCalled()
+      expect(console.error).toHaveBeenCalledWith(new Error('Error 404'))
+    })
+
+    test("Then it should handle 500 error when store.bills().create fails", async () => {
+      document.body.innerHTML = NewBillUI()
+      console.error = jest.fn()
+
+      const newBill = new NewBill({
+        document,
+        onNavigate: jest.fn(),
+        store: {
+          bills: () => ({
+            create: jest.fn().mockRejectedValue(new Error('Error 500'))
+          })
+        },
+        localStorage: window.localStorage
+      })
+
+      const file = new File(['test'], 'test.png', { type: 'image/png' })
+      const event = {
+        preventDefault: jest.fn(),
+        target: {
+          value: 'C:\\fakepath\\test.png',
+          files: [file]
+        }
+      }
+
+      newBill.handleChangeFile(event)
+      await new Promise(process.nextTick)
+
+      expect(console.error).toHaveBeenCalledWith(new Error('Error 500'))
     })
   })
 })
